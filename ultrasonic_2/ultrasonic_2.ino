@@ -52,26 +52,26 @@ volatile uint8_t state = 1;	// state variable
 ISR(PCINT0_vect) {
 	switch (digitalRead(8)) {
 		case HIGH:	// echo pin change was a rising edge (start of echo pulse)
-		rear_echo_start = micros();
-		break;
+			rear_echo_start = micros();
+			break;
 		case LOW:	// echo pin change was a falling edge (end of echo pulse)
-		rear_echo_end = micros();
-		rear_echo_duration = rear_echo_end - rear_echo_start;	// calculate echo pulse duration
-		rear_echo = true;
-		break;
+			rear_echo_end = micros();
+			rear_echo_duration = rear_echo_end - rear_echo_start;	// calculate echo pulse duration
+			rear_echo = true;
+			break;
 	}
 }
 
 ISR(PCINT2_vect) {
 	switch (digitalRead(7)) {
 		case HIGH:	// echo pin change was a rising edge (start of echo pulse)
-		front_echo_start = micros();
-		break;
+			front_echo_start = micros();
+			break;
 		case LOW:	// echo pin change was a falling edge (end of echo pulse)
-		front_echo_end = micros();
-		front_echo_duration = front_echo_end - front_echo_start;	// calculate echo pulse duration
-		front_echo = true;
-		break;
+			front_echo_end = micros();
+			front_echo_duration = front_echo_end - front_echo_start;	// calculate echo pulse duration
+			front_echo = true;
+			break;
 	}
 }
 
@@ -123,8 +123,8 @@ void setup() {
 }
 
 void loop() {
-	static float front_distance;	// distance to obstacle front in centimeter
-	static float rear_distance;		// distance to obstacle rear in centimeter
+	static float front_distance = 2000;	// distance to obstacle front in centimeter
+	static float rear_distance = 2000;	// distance to obstacle rear in centimeter
 
 	if (front_echo) {
 		front_echo = false;
@@ -139,7 +139,7 @@ void loop() {
 	if (timer == true) {
 		timer = false;
 
-		if (front_distance < 2000) {
+		if (front_distance < 200) {
 			DEBUG_PRINT(front_distance);
 		}
 		else {
@@ -148,7 +148,7 @@ void loop() {
 		
 		DEBUG_PRINT("\t");
 		
-		if (rear_distance < 2000) {
+		if (rear_distance < 200) {
 			DEBUG_PRINTLN(rear_distance);
 		}
 		else {

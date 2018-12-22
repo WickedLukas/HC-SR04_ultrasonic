@@ -21,15 +21,15 @@
 #define TRIGGER_TIME 20					// time in microseconds trigger is set to high
 #define TRIGGER_TIME_INTERVAL	2000	// maximum trigger time interval in TRIGGER_TIME
 
-volatile uint16_t trigger_time_count = 0;	// counter for TRIGGER_TIME_INTERVAL
-volatile uint8_t state = 1;	// state variable
-
 volatile int32_t echo_start;	// echo start in microseconds
 volatile int32_t echo_end;		// echo end in microseconds
 volatile int32_t echo_duration;	// echo duration in microseconds
 
-volatile boolean timer = false;
 volatile boolean echo = false;
+volatile boolean timer = false;
+
+volatile uint16_t trigger_time_count = 0;	// counter for TRIGGER_TIME_INTERVAL
+volatile uint8_t state = 1;	// state variable
 
 // NOTE! Enabling DEBUG adds about 3.3kB to the flash program size.
 // Debug output is now working even on ATMega328P MCUs (e.g. Arduino Uno)
@@ -44,6 +44,21 @@ volatile boolean echo = false;
 #define DEBUG_PRINT(x)
 #define DEBUG_PRINTLN(x)
 #endif
+
+void echo_isr() {
+	switch (digitalRead(HCSR04_ECHO_PIN)) {
+		case HIGH:	// echo pin change was a rising edge (start of echo pulse)
+			echo_start = micros();
+			break;
+		case LOW:	// echo pin change was a falling edge (end of echo pulse)
+			echo_end = micros();
+			echo_duration = echo_end - echo_start;	// calculate echo pulse duration
+			echo = true;
+			//trigger_time_count = 0;
+			//state = 1;
+			break;
+	}
+}
 
 void timer_isr() {
 	if (++trigger_time_count >= TRIGGER_TIME_INTERVAL) {
@@ -66,21 +81,6 @@ void timer_isr() {
 	}
 }
 
-void echo_isr() {
-	switch (digitalRead(HCSR04_ECHO_PIN)) {
-		case HIGH:	// echo pin change was a rising edge (start of echo pulse)
-			echo_start = micros();
-			break;
-		case LOW:	// echo pin change was a falling edge (end of echo pulse)
-			echo_end = micros();
-			echo_duration = echo_end - echo_start;	// calculate echo pulse duration
-			echo = true;
-			//trigger_time_count = 0;
-			//state = 1;
-			break;
-	}
-}
-
 void setup() {
 	#ifdef DEBUG
 	// initialize serial communication
@@ -88,23 +88,24 @@ void setup() {
 	while (!Serial); // wait for Leonardo eNUMeration, others continue immediately
 	#endif
 
-	pinMode(HCSR04_TRIGGER_PIN, OUTPUT);		// configure trigger pin as output
+	pinMode(HCSR04_TRIGGER_PIN, OUTPUT);	// configure trigger pin as output
 	digitalWrite(HCSR04_TRIGGER_PIN, LOW);	// set trigger pin to low
+	
 	pinMode(HCSR04_ECHO_PIN, INPUT);	// configure echo pin as input
 	attachInterrupt(digitalPinToInterrupt(HCSR04_ECHO_PIN), echo_isr, CHANGE);	// attach interrupt service routine echo_isr to echo pin
 
-	Timer1.initialize(TRIGGER_TIME);		// initialise timer 1
+	Timer1.initialize(TRIGGER_TIME);	// initialize timer 1
 	Timer1.attachInterrupt(timer_isr);	// attach interrupt service routine timer_isr to timer 1
 }
 
 void loop() {
-	static float distance;	// distance to obstacle in centimeter
+	static float distance = 2000;	// distance to obstacle in centimeter
 
 	if (echo) {
+		echo = false;
 		distance = echo_duration * 0.01716;
-		if (distance < 2000){
+		if (distance < 200){
 			DEBUG_PRINTLN(distance);
 		}
-		echo = false;
 	}
 }
